@@ -1,118 +1,115 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { UploadCloud, FileText, Scale, FileSignature, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  UploadCloud, FileText, Scale, FileSignature, AlertCircle,
+  CheckCircle2, Loader2, Type, Upload, X, ClipboardPaste
+} from "lucide-react";
 import { useUploadDocument } from "@workspace/api-client-react";
 import { useAnalysisStream } from "@/hooks/use-analysis-stream";
 import { Card, Button } from "@/components/ui-elements";
 import { cn, formatBytes } from "@/lib/utils";
 
 const DOC_TYPES = [
-  { id: "contracts", label: "Contracts", icon: FileSignature, desc: "NDAs, MSAs, Employment" },
-  { id: "case-files", label: "Case Files", icon: FileText, desc: "Pleadings, Briefs, Motions" },
-  { id: "agreements", label: "Agreements", icon: Scale, desc: "Settlements, Term Sheets" },
-  { id: "legal-notices", label: "Legal Notices", icon: AlertCircle, desc: "Cease & Desist, Evictions" },
+  { id: "contracts",     label: "Contracts",     icon: FileSignature, desc: "NDAs, MSAs, Employment" },
+  { id: "case-files",    label: "Case Files",     icon: FileText,      desc: "Pleadings, Briefs, Motions" },
+  { id: "agreements",    label: "Agreements",     icon: Scale,         desc: "Settlements, Term Sheets" },
+  { id: "legal-notices", label: "Legal Notices",  icon: AlertCircle,   desc: "Cease & Desist, Evictions" },
 ] as const;
+
+type InputMode = "file" | "text";
 
 export default function Home() {
   const [, setLocation] = useLocation();
+
+  /* ─ mode toggle ─ */
+  const [mode, setMode] = useState<InputMode>("file");
+
+  /* ─ shared ─ */
   const [selectedType, setSelectedType] = useState<typeof DOC_TYPES[number]["id"]>("contracts");
-  const [file, setFile] = useState<File | null>(null);
+
+  /* ─ file mode ─ */
+  const [file, setFile]           = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef               = useRef<HTMLInputElement>(null);
+
+  /* ─ text mode ─ */
+  const [docText, setDocText]     = useState("");
+  const [docName, setDocName]     = useState("");
 
   const uploadMutation = useUploadDocument();
-  const stream = useAnalysisStream();
+  const stream         = useAnalysisStream();
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
+  /* drag events */
+  const handleDragOver  = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
+  const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); }, []);
+  const handleDrop      = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); setIsDragging(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) setFile(f);
   }, []);
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setFile(e.dataTransfer.files[0]);
-    }
-  }, []);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-    }
-  };
-
+  /* analyze */
   const handleAnalyze = async () => {
-    if (!file) return;
-
-    try {
-      // 1. Upload File
-      const uploadRes = await uploadMutation.mutateAsync({
-        data: { file, documentType: selectedType }
-      });
-
-      // 2. Start SSE Stream for Analysis
-      if (uploadRes.documentId) {
-        stream.startAnalysis(uploadRes.documentId);
-      }
-    } catch (error) {
-      console.error("Failed to analyze", error);
+    if (mode === "file") {
+      if (!file) return;
+      try {
+        const uploadRes = await uploadMutation.mutateAsync({ data: { file, documentType: selectedType } });
+        if (uploadRes.documentId) stream.startAnalysis(uploadRes.documentId);
+      } catch (err) { console.error(err); }
+    } else {
+      if (!docText.trim()) return;
+      stream.startTextAnalysis(docText.trim(), selectedType, docName.trim() || undefined);
     }
   };
 
-  // Auto-redirect when done
-  if (stream.status === 'completed' && stream.resultId) {
+  /* redirect when done */
+  if (stream.status === "completed" && stream.resultId) {
     setTimeout(() => setLocation(`/analysis/${stream.resultId}`), 1000);
   }
 
-  const isProcessing = uploadMutation.isPending || stream.status === 'analyzing';
+  const isProcessing = uploadMutation.isPending || stream.status === "analyzing";
+  const canAnalyze   = mode === "file" ? !!file : docText.trim().length >= 20;
+  const charCount    = docText.length;
+  const wordCount    = docText.trim() ? docText.trim().split(/\s+/).length : 0;
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-12 animate-fade-in pb-20">
-      
+
+      {/* ── Hero ── */}
       <div className="text-center space-y-4 pt-10">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-sm font-medium mb-4">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
           </span>
           AI-Powered Legal Intelligence
         </div>
-        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-white">
-          Transform Raw Legal Text <br className="hidden md:block" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Into Actionable Insights</span>
+        <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-tight">
+          Transform Raw Legal Text<br className="hidden md:block" />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent"> Into Actionable Insights</span>
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Upload any legal document to instantly extract clauses, identify risks, and uncover hidden obligations with unmatched accuracy.
+          Upload any legal document or paste text to instantly extract clauses, identify risks, and uncover hidden obligations.
         </p>
       </div>
 
       <AnimatePresence mode="wait">
-        {!isProcessing && stream.status !== 'completed' ? (
-          <motion.div 
-            key="upload"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="space-y-8"
-          >
-            {/* Document Types */}
+        {!isProcessing && stream.status !== "completed" ? (
+          <motion.div key="upload" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-8">
+
+            {/* ── Document Type ── */}
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">1. Select Document Type</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {DOC_TYPES.map((type) => (
+                {DOC_TYPES.map(type => (
                   <button
                     key={type.id}
                     onClick={() => setSelectedType(type.id)}
                     className={cn(
                       "flex flex-col items-start p-5 rounded-2xl border text-left transition-all duration-300",
-                      selectedType === type.id 
-                        ? "bg-primary/10 border-primary shadow-lg shadow-primary/10 ring-1 ring-primary" 
+                      selectedType === type.id
+                        ? "bg-primary/10 border-primary shadow-lg shadow-primary/10 ring-1 ring-primary"
                         : "bg-card border-white/5 hover:border-white/20 hover:bg-white/5"
                     )}
                   >
@@ -124,92 +121,182 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Upload Zone */}
+            {/* ── Mode Toggle ── */}
             <div>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">2. Upload File</h2>
-              <Card 
-                className={cn(
-                  "relative border-2 border-dashed transition-all duration-300 ease-in-out group",
-                  isDragging ? "border-primary bg-primary/5" : "border-white/10 hover:border-white/20",
-                  file ? "bg-white/[0.02] border-white/20" : ""
-                )}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <div className="p-12 md:p-20 flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <UploadCloud className="w-8 h-8 text-primary" />
-                  </div>
-                  
-                  {file ? (
-                    <div className="space-y-2 animate-fade-in">
-                      <p className="text-xl font-semibold text-white">{file.name}</p>
-                      <p className="text-sm text-muted-foreground">{formatBytes(file.size)}</p>
-                      <Button variant="ghost" size="sm" onClick={() => setFile(null)} className="mt-2 text-destructive hover:text-destructive hover:bg-destructive/10">
-                        Remove file
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-xl font-semibold text-white mb-2">Drag & drop your file here</p>
-                      <p className="text-sm text-muted-foreground mb-6">Supports PDF, DOC, DOCX up to 50MB</p>
-                      <div className="relative">
-                        <input
-                          type="file"
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          accept=".pdf,.doc,.docx"
-                          onChange={handleFileChange}
-                        />
-                        <Button variant="secondary">Browse Files</Button>
-                      </div>
-                    </>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">2. Choose Input Method</h2>
+              <div className="inline-flex p-1 bg-secondary/60 border border-white/8 rounded-xl gap-1">
+                <button
+                  onClick={() => setMode("file")}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all",
+                    mode === "file"
+                      ? "bg-primary text-white shadow"
+                      : "text-muted-foreground hover:text-white"
                   )}
-                </div>
-              </Card>
+                >
+                  <Upload className="w-4 h-4" /> Upload File
+                </button>
+                <button
+                  onClick={() => setMode("text")}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all",
+                    mode === "text"
+                      ? "bg-primary text-white shadow"
+                      : "text-muted-foreground hover:text-white"
+                  )}
+                >
+                  <Type className="w-4 h-4" /> Paste Text
+                </button>
+              </div>
             </div>
 
+            {/* ── Input Area ── */}
+            <AnimatePresence mode="wait">
+              {mode === "file" ? (
+                <motion.div key="file-mode" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}>
+                  <Card
+                    className={cn(
+                      "relative border-2 border-dashed transition-all duration-300 group",
+                      isDragging ? "border-primary bg-primary/5" : "border-white/10 hover:border-white/20",
+                      file ? "bg-white/[0.02] border-white/20" : ""
+                    )}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <div className="p-12 md:p-20 flex flex-col items-center justify-center text-center">
+                      <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <UploadCloud className="w-8 h-8 text-primary" />
+                      </div>
+                      {file ? (
+                        <div className="space-y-3 animate-fade-in">
+                          <div className="flex items-center gap-3 px-4 py-3 bg-primary/10 border border-primary/20 rounded-xl">
+                            <FileText className="w-5 h-5 text-primary shrink-0" />
+                            <div className="text-left">
+                              <p className="text-base font-semibold text-white leading-tight">{file.name}</p>
+                              <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>
+                            </div>
+                            <button onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} className="ml-auto p-1 rounded-lg hover:bg-white/10 text-muted-foreground hover:text-destructive transition-colors">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Ready to analyze. Click "Start Analysis" below.</p>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-xl font-semibold text-white mb-2">Drag & drop your file here</p>
+                          <p className="text-sm text-muted-foreground mb-6">Supports PDF, DOC, DOCX up to 50 MB</p>
+                          <div className="relative">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              accept=".pdf,.doc,.docx"
+                              onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f); }}
+                            />
+                            <Button variant="secondary">Browse Files</Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </Card>
+                </motion.div>
+              ) : (
+                <motion.div key="text-mode" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-4">
+                  {/* Document name input */}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                      Document Name <span className="text-white/30 normal-case font-normal">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Service Agreement — Acme Corp"
+                      value={docName}
+                      onChange={e => setDocName(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-secondary border border-white/10 rounded-xl text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                    />
+                  </div>
+
+                  {/* Text area */}
+                  <div className="relative">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
+                      <ClipboardPaste className="w-3.5 h-3.5" /> Paste or Type Document Text
+                    </label>
+                    <textarea
+                      rows={14}
+                      placeholder={"Paste your legal document text here…\n\nYou can paste the full body of a contract, agreement, legal notice, or case file. InsightIQ will extract all clauses, parties, risks, dates, and insights automatically."}
+                      value={docText}
+                      onChange={e => setDocText(e.target.value)}
+                      className="w-full px-4 py-3 bg-secondary border border-white/10 rounded-xl text-sm text-white placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary transition-colors resize-none leading-relaxed font-mono"
+                    />
+                    {/* stats bar */}
+                    <div className="absolute bottom-3 right-3 flex items-center gap-3 text-[11px] text-muted-foreground bg-background/80 backdrop-blur-sm px-2 py-1 rounded-lg pointer-events-none">
+                      <span>{wordCount.toLocaleString()} words</span>
+                      <span className="w-px h-3 bg-white/10" />
+                      <span className={cn(charCount < 20 && charCount > 0 ? "text-destructive" : "")}>{charCount.toLocaleString()} chars</span>
+                    </div>
+                  </div>
+
+                  {charCount > 0 && charCount < 20 && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" /> Please enter at least 20 characters.
+                    </p>
+                  )}
+
+                  {/* quick paste tips */}
+                  <div className="flex flex-wrap gap-2">
+                    {["NDA Agreement", "Service Contract", "Legal Notice", "Employment Agreement"].map(label => (
+                      <button
+                        key={label}
+                        onClick={() => setDocName(label)}
+                        className="text-[11px] px-3 py-1 rounded-full border border-white/10 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="flex justify-center pt-4">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="w-full md:w-auto md:min-w-[300px] text-lg rounded-full"
-                disabled={!file}
+                disabled={!canAnalyze}
                 onClick={handleAnalyze}
               >
-                Start Analysis
+                {mode === "file" ? (
+                  <><Upload className="w-5 h-5 mr-2" /> Analyze Document</>
+                ) : (
+                  <><Type className="w-5 h-5 mr-2" /> Analyze Text</>
+                )}
               </Button>
             </div>
           </motion.div>
         ) : (
+          /* ── Processing Overlay ── */
           <motion.div
             key="processing"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-2xl mx-auto mt-20"
+            className="w-full max-w-2xl mx-auto mt-16"
           >
             <Card className="p-10 text-center relative overflow-hidden">
-              {/* Animated background glow */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-primary/20 blur-[100px] rounded-full pointer-events-none" />
-              
+
               <div className="relative z-10 space-y-8">
+                {/* spinner + progress ring */}
                 <div className="w-20 h-20 mx-auto rounded-full bg-card border border-white/10 flex items-center justify-center shadow-2xl relative">
-                  {stream.status === 'completed' ? (
+                  {stream.status === "completed" ? (
                     <CheckCircle2 className="w-10 h-10 text-green-500" />
-                  ) : stream.status === 'error' ? (
+                  ) : stream.status === "error" ? (
                     <AlertCircle className="w-10 h-10 text-destructive" />
                   ) : (
                     <>
                       <Loader2 className="w-8 h-8 text-primary animate-spin" />
                       <svg className="absolute inset-0 w-full h-full -rotate-90">
-                        <circle
-                          className="text-white/5"
-                          strokeWidth="2"
-                          stroke="currentColor"
-                          fill="transparent"
-                          r="38"
-                          cx="40"
-                          cy="40"
-                        />
+                        <circle strokeWidth="2" stroke="rgba(255,255,255,0.05)" fill="transparent" r="38" cx="40" cy="40" />
                         <circle
                           className="text-primary transition-all duration-300 ease-out"
                           strokeWidth="2"
@@ -218,50 +305,62 @@ export default function Home() {
                           strokeLinecap="round"
                           stroke="currentColor"
                           fill="transparent"
-                          r="38"
-                          cx="40"
-                          cy="40"
+                          r="38" cx="40" cy="40"
                         />
                       </svg>
                     </>
                   )}
                 </div>
 
+                {/* step pills */}
+                <div className="flex justify-center gap-2">
+                  {[
+                    { key: "extracting",  label: "Extracting" },
+                    { key: "analyzing",   label: "Analysing" },
+                    { key: "generating",  label: "Generating" },
+                  ].map(s => (
+                    <span key={s.key} className={cn(
+                      "text-xs px-3 py-1 rounded-full border transition-all",
+                      stream.step === s.key
+                        ? "border-primary text-primary bg-primary/10"
+                        : "border-white/8 text-muted-foreground"
+                    )}>{s.label}</span>
+                  ))}
+                </div>
+
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-bold text-white font-display">
-                    {uploadMutation.isPending 
-                      ? "Uploading Document..." 
-                      : stream.status === 'completed' 
-                        ? "Analysis Complete!" 
-                        : stream.status === 'error'
+                  <h3 className="text-2xl font-bold text-white">
+                    {uploadMutation.isPending
+                      ? "Uploading Document…"
+                      : stream.status === "completed"
+                        ? "Analysis Complete!"
+                        : stream.status === "error"
                           ? "Analysis Failed"
-                          : stream.step}
+                          : stream.step || "Processing…"}
                   </h3>
-                  <p className="text-muted-foreground">
-                    {uploadMutation.isPending 
-                      ? "Securely transferring your file to our servers." 
-                      : stream.status === 'error'
+                  <p className="text-muted-foreground text-sm">
+                    {uploadMutation.isPending
+                      ? "Securely transferring your file."
+                      : stream.status === "error"
                         ? stream.error
                         : stream.message}
                   </p>
                 </div>
 
-                {/* Progress track */}
                 <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-                  <motion.div 
+                  <motion.div
                     className="h-full bg-gradient-to-r from-primary to-accent"
                     initial={{ width: "0%" }}
                     animate={{ width: `${uploadMutation.isPending ? 10 : stream.progress}%` }}
                     transition={{ ease: "easeOut", duration: 0.5 }}
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">{uploadMutation.isPending ? 10 : stream.progress}% complete</p>
 
-                {stream.status === 'completed' && (
-                  <p className="text-sm text-primary font-medium animate-pulse">
-                    Redirecting to dashboard...
-                  </p>
+                {stream.status === "completed" && (
+                  <p className="text-sm text-primary font-medium animate-pulse">Redirecting to dashboard…</p>
                 )}
-                {stream.status === 'error' && (
+                {stream.status === "error" && (
                   <Button variant="outline" onClick={() => { stream.resetStream(); uploadMutation.reset(); }}>
                     Try Again
                   </Button>

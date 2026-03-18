@@ -259,4 +259,104 @@ router.post("/documents/:documentId/analyze", async (req: Request, res: Response
   }
 });
 
+router.post("/documents/analyze-text", async (req: Request, res: Response) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
+  const sendEvent = (data: Record<string, unknown>) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    const { text, documentType, documentName } = req.body as {
+      text?: string;
+      documentType?: string;
+      documentName?: string;
+    };
+
+    if (!text || text.trim().length < 20) {
+      sendEvent({ type: "error", message: "Please provide at least 20 characters of document text." });
+      res.end();
+      return;
+    }
+
+    if (!documentType) {
+      sendEvent({ type: "error", message: "documentType is required." });
+      res.end();
+      return;
+    }
+
+    sendEvent({ type: "progress", step: "extracting", progress: 20, message: "Processing text input..." });
+
+    const documentId = uuidv4();
+    const fileName = documentName?.trim() || "Pasted Document";
+
+    await db.insert(documentsTable).values({
+      documentId,
+      fileName,
+      fileSize: Buffer.byteLength(text, "utf8"),
+      documentType,
+      status: "text_extracted",
+      extractedText: text,
+    });
+
+    sendEvent({ type: "progress", step: "extracting", progress: 35, message: "Text ready for analysis" });
+
+    const analysisId = uuidv4();
+    await db.insert(analysesTable).values({
+      analysisId,
+      documentId,
+      documentName: fileName,
+      documentType,
+      status: "processing",
+    });
+
+    sendEvent({ type: "progress", step: "analyzing", progress: 50, message: "AI is analyzing your document..." });
+
+    const analysisData = await analyzeWithAI(text, documentType);
+
+    sendEvent({ type: "progress", step: "generating", progress: 85, message: "Generating structured insights..." });
+
+    const completedAt = new Date();
+    await db.update(analysesTable)
+      .set({
+        status: "completed",
+        summary: (analysisData.summary as string) ?? null,
+        parties: analysisData.parties as Record<string, unknown>[],
+        clauses: analysisData.clauses as Record<string, unknown>[],
+        risks: analysisData.risks as Record<string, unknown>[],
+        importantDates: analysisData.importantDates as Record<string, unknown>[],
+        entities: analysisData.entities as Record<string, unknown>[],
+        insights: analysisData.insights as Record<string, unknown>[],
+        riskDistribution: analysisData.riskDistribution as Record<string, unknown>,
+        missingTerms: analysisData.missingTerms as string[],
+        ambiguousTerms: analysisData.ambiguousTerms as string[],
+        completedAt,
+      })
+      .where(eq(analysesTable.analysisId, analysisId));
+
+    const fullResult = {
+      analysisId,
+      documentId,
+      documentName: fileName,
+      documentType,
+      status: "completed",
+      ...analysisData,
+      createdAt: new Date().toISOString(),
+      completedAt: completedAt.toISOString(),
+    };
+
+    sendEvent({ type: "progress", step: "generating", progress: 100, message: "Analysis complete!" });
+    sendEvent({ type: "result", data: fullResult });
+    sendEvent({ type: "done" });
+    res.end();
+  } catch (err) {
+    console.error("Text analysis error:", err);
+    sendEvent({ type: "error", message: "Analysis failed: " + (err instanceof Error ? err.message : "Unknown error") });
+    res.end();
+  }
+});
+
 export default router;
