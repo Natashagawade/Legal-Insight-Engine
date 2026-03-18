@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useRoute } from "wouter";
 import { exportAnalysis, useGetAnalysis } from "@workspace/api-client-react";
 import { Card, Badge, Button } from "@/components/ui-elements";
