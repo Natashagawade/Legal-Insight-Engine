@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: InsightIQ Legal Document Analysis API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: documents
+    description: Document upload and analysis
+  - name: analyses
+    description: Analysis results and history
 paths:
   /healthz:
     get:
@@ -24,6 +27,152 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /documents/upload:
+    post:
+      operationId: uploadDocument
+      tags: [documents]
+      summary: Upload a legal document
+      description: Upload a PDF, DOC, or DOCX file for analysis
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                documentType:
+                  type: string
+                  enum: [contracts, case-files, agreements, legal-notices]
+              required:
+                - file
+                - documentType
+      responses:
+        "200":
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentUploadResponse"
+        "400":
+          description: Invalid file or request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /documents/{documentId}/analyze:
+    post:
+      operationId: analyzeDocument
+      tags: [documents]
+      summary: Analyze a document
+      description: Trigger AI analysis for an uploaded document (streams SSE)
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Analysis stream started
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "404":
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analyses:
+    get:
+      operationId: listAnalyses
+      tags: [analyses]
+      summary: List all analyses
+      description: Get history of all document analyses
+      responses:
+        "200":
+          description: List of analyses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisListResponse"
+
+  /analyses/{analysisId}:
+    get:
+      operationId: getAnalysis
+      tags: [analyses]
+      summary: Get a specific analysis
+      description: Get full analysis result by ID
+      parameters:
+        - name: analysisId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Analysis details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "404":
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAnalysis
+      tags: [analyses]
+      summary: Delete an analysis
+      parameters:
+        - name: analysisId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /analyses/{analysisId}/export:
+    get:
+      operationId: exportAnalysis
+      tags: [analyses]
+      summary: Export analysis as PDF or CSV
+      parameters:
+        - name: analysisId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [pdf, csv]
+      responses:
+        "200":
+          description: Exported file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +183,241 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    DocumentUploadResponse:
+      type: object
+      properties:
+        documentId:
+          type: string
+        fileName:
+          type: string
+        fileSize:
+          type: number
+        documentType:
+          type: string
+        status:
+          type: string
+          enum: [uploaded, processing, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - documentId
+        - fileName
+        - fileSize
+        - documentType
+        - status
+        - createdAt
+
+    RiskItem:
+      type: object
+      properties:
+        level:
+          type: string
+          enum: [low, medium, high]
+        description:
+          type: string
+        clause:
+          type: string
+      required:
+        - level
+        - description
+        - clause
+
+    Clause:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        explanation:
+          type: string
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+      required:
+        - type
+        - title
+        - content
+        - explanation
+        - riskLevel
+
+    Party:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        obligations:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - role
+        - obligations
+
+    ImportantDate:
+      type: object
+      properties:
+        date:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [agreement, deadline, expiry, renewal, payment, other]
+      required:
+        - date
+        - description
+        - type
+
+    Entity:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [person, organization, date, amount, location, other]
+        value:
+          type: string
+        context:
+          type: string
+      required:
+        - type
+        - value
+        - context
+
+    SmartInsight:
+      type: object
+      properties:
+        category:
+          type: string
+          enum: [improvement, risk, clarification, summary]
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, critical]
+      required:
+        - category
+        - title
+        - description
+        - severity
+
+    RiskDistribution:
+      type: object
+      properties:
+        low:
+          type: number
+        medium:
+          type: number
+        high:
+          type: number
+      required:
+        - low
+        - medium
+        - high
+
+    AnalysisResult:
+      type: object
+      properties:
+        analysisId:
+          type: string
+        documentId:
+          type: string
+        documentName:
+          type: string
+        documentType:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        summary:
+          type: string
+        parties:
+          type: array
+          items:
+            $ref: "#/components/schemas/Party"
+        clauses:
+          type: array
+          items:
+            $ref: "#/components/schemas/Clause"
+        risks:
+          type: array
+          items:
+            $ref: "#/components/schemas/RiskItem"
+        importantDates:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportantDate"
+        entities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Entity"
+        insights:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmartInsight"
+        riskDistribution:
+          $ref: "#/components/schemas/RiskDistribution"
+        missingTerms:
+          type: array
+          items:
+            type: string
+        ambiguousTerms:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+      required:
+        - analysisId
+        - documentId
+        - documentName
+        - documentType
+        - status
+        - createdAt
+
+    AnalysisListResponse:
+      type: object
+      properties:
+        analyses:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalysisResult"
+        total:
+          type: number
+      required:
+        - analyses
+        - total

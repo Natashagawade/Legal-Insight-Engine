@@ -1,0 +1,18 @@
+packages:
+  "recharts": "Data visualization for risk and clause distributions"
+  "framer-motion": "Smooth page transitions and progress animations"
+  "date-fns": "Human readable date formatting"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility function to efficiently merge Tailwind CSS classes"
+
+images:
+  - path: "artifacts/insightiq/public/images/hero-abstract.png"
+    description: "Premium dark abstract background with subtle deep blue and purple mesh gradients, minimalist and professional for a legal tech platform"
+    aspect_ratio: "16:9"
+  - path: "artifacts/insightiq/public/images/logo-mark.png"
+    description: "Minimalist modern logo mark representing a balanced scale or document, glowing icy blue on a transparent background"
+    aspect_ratio: "1:1"
+
+notes:
+  - SSE stream requires a custom hook to read via fetch and ReadableStream since Orval generates it as a standard mutation.
+  - The API structure uses multipart/form-data for upload.
