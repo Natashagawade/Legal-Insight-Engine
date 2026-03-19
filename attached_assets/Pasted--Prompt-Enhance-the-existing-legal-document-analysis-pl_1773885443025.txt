@@ -1,0 +1,152 @@
+**Prompt:**
+
+Enhance the existing legal document analysis platform **InsightIQ** by adding a **General Document Analyzer module** that can process any type of document (not limited to legal files) and generate intelligent summaries, key insights, multilingual outputs, and audio narration.
+
+---
+
+## 🎯 Objective:
+
+Enable InsightIQ to function as a **universal document intelligence system** that can read, understand, and present insights from **any uploaded document** in a simplified, user-friendly format.
+
+---
+
+## 📂 Supported Documents:
+
+* PDF (.pdf)
+* Word (.doc, .docx)
+* Plain Text (.txt)
+
+---
+
+## 🧠 Core Features:
+
+### 📄 1. Smart Document Summary
+
+* Automatically generate a **concise and accurate summary**
+* Provide:
+
+  * Short summary (3–5 lines)
+  * Detailed summary (paragraph format)
+* Ensure context-aware understanding of the document
+
+---
+
+### 🔑 2. Key Points Extraction
+
+* Extract important points in bullet format:
+
+  * Main ideas
+  * Important facts
+  * Critical statements
+* Avoid redundancy and maintain clarity
+
+---
+
+### 🗓️ 3. Timeline Generation
+
+* Detect and extract all **important dates/events**
+* Display as:
+
+  * Chronological timeline
+  * Event descriptions with dates
+* Handle implicit and explicit date references
+
+---
+
+### 🌐 4. Multilingual Translation
+
+* Add a **language selector dropdown**
+* Allow summary translation into:
+
+  * Hindi
+  * Marathi
+  * English
+  * Spanish
+  * French
+  * German
+  * (Extendable to more languages)
+* Maintain meaning accuracy during translation
+
+---
+
+### 🔊 5. Audio Summary (Text-to-Speech)
+
+* Convert generated summary into **natural-sounding audio**
+* Provide:
+
+  * Play / Pause controls
+  * Voice selection (male/female if possible)
+* Ensure clarity and proper pronunciation
+
+---
+
+## ⚡ Real-Time Processing:
+
+* Generate summary, key points, and timeline dynamically after upload
+* Smooth UI transitions with loading indicators
+
+---
+
+## 🎨 UI/UX Additions:
+
+* Add a new tile: **“General Document Analyzer”**
+* Sections in output:
+
+  * Summary
+  * Key Points
+  * Timeline
+  * Translation Panel
+  * Audio Player
+* Keep consistent **dark theme (black + white + minimal accents)**
+
+---
+
+## 🧱 Technical Implementation:
+
+### Backend:
+
+* NLP summarization (OpenAI / transformer models)
+* Date extraction using NLP libraries
+* Translation APIs (Google Translate API / OpenAI)
+* Text-to-Speech (TTS):
+
+  * Web Speech API / Google TTS / ElevenLabs
+
+---
+
+### Frontend:
+
+* Language selector dropdown
+* Audio player UI
+* Expandable/collapsible summary sections
+
+---
+
+## ⚠️ Important Requirements:
+
+* Maintain **high accuracy and context awareness**
+* Ensure translations preserve original meaning
+* Audio should be synchronized with summary content
+* Support large documents efficiently
+
+---
+
+## 🚀 Expected Outcome:
+
+A powerful extension of InsightIQ that:
+
+* Works on **any type of document**
+* Converts complex content into:
+
+  * Simple summaries
+  * Key insights
+  * Timelines
+* Makes content accessible via:
+
+  * **Multiple languages**
+  * **Audio narration**
+
+---
+
+**End Goal:**
+Transform InsightIQ into a **multi-purpose AI document assistant** capable of understanding, summarizing, translating, and speaking any document intelligently.

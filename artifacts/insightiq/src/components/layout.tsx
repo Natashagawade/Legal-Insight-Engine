@@ -1,13 +1,14 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Scale, History, LayoutDashboard, Settings, LogOut } from "lucide-react";
+import { Scale, History, LayoutDashboard, Settings, FileSearch2 } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
   const navItems = [
-    { href: "/", label: "New Analysis", icon: LayoutDashboard },
-    { href: "/history", label: "History", icon: History },
+    { href: "/",        label: "Legal Analyzer",    icon: LayoutDashboard },
+    { href: "/general", label: "General Analyzer",  icon: FileSearch2 },
+    { href: "/history", label: "History",            icon: History },
   ];
 
   return (
@@ -24,7 +25,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const isActive = location === item.href || (item.href !== "/" && location.startsWith(item.href));
               return (
@@ -32,8 +33,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2 text-sm font-medium transition-colors hover:text-white",
-                    isActive ? "text-white" : "text-muted-foreground"
+                    "flex items-center gap-2 text-sm font-medium transition-all px-4 py-2 rounded-lg",
+                    isActive
+                      ? "bg-white/8 text-white"
+                      : "text-muted-foreground hover:text-white hover:bg-white/5"
                   )}
                 >
                   <item.icon className={cn("w-4 h-4", isActive ? "text-primary" : "")} />

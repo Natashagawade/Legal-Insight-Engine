@@ -8,6 +8,7 @@ import { Layout } from "@/components/layout";
 import Home from "@/pages/home";
 import AnalysisDashboard from "@/pages/analysis-dashboard";
 import History from "@/pages/history";
+import GeneralAnalyzer from "@/pages/general-analyzer";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -26,6 +27,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/analysis/:analysisId" component={AnalysisDashboard} />
         <Route path="/history" component={History} />
+        <Route path="/general" component={GeneralAnalyzer} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

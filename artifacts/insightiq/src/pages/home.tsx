@@ -1,9 +1,10 @@
 import { useState, useCallback, useRef } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   UploadCloud, FileText, Scale, FileSignature, AlertCircle,
-  CheckCircle2, Loader2, Type, Upload, X, ClipboardPaste
+  CheckCircle2, Loader2, Type, Upload, X, ClipboardPaste,
+  FileSearch2, ArrowRight, Zap
 } from "lucide-react";
 import { useUploadDocument } from "@workspace/api-client-react";
 import { useAnalysisStream } from "@/hooks/use-analysis-stream";
@@ -370,6 +371,43 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── General Analyzer Promo ── */}
+      {stream.status === "idle" && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Link href="/general">
+            <div className="group relative overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-blue-500/5 p-6 cursor-pointer hover:border-violet-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/5">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-violet-500/10 blur-[60px] rounded-full pointer-events-none" />
+              <div className="flex items-start justify-between gap-6 relative z-10">
+                <div className="flex items-start gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                    <FileSearch2 className="w-5 h-5 text-violet-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-white">General Document Analyzer</h3>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 font-medium flex items-center gap-1">
+                        <Zap className="w-2.5 h-2.5" /> New
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground max-w-lg">
+                      Analyze <strong className="text-white/70">any document</strong> — reports, articles, research papers, manuals. Get summaries, key points, timelines, multilingual translations, and audio narration.
+                    </p>
+                    <div className="flex flex-wrap gap-3 mt-3 text-xs text-muted-foreground">
+                      {["Smart Summary", "Key Points", "Timeline", "10+ Languages", "Audio Narration"].map(f => (
+                        <span key={f} className="flex items-center gap-1">
+                          <span className="w-1 h-1 rounded-full bg-violet-400" />{f}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-violet-400 group-hover:translate-x-1 transition-all shrink-0 mt-1" />
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+      )}
     </div>
   );
 }
