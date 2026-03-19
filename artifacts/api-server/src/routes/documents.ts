@@ -50,32 +50,69 @@ async function extractText(buffer: Buffer, mimetype: string, filename: string): 
 }
 
 async function analyzeWithAI(text: string, documentType: string): Promise<Record<string, unknown>> {
-  const truncatedText = text.slice(0, 15000);
+  // Increased to 50k chars for comprehensive coverage
+  const truncatedText = text.slice(0, 50000);
 
-  const systemPrompt = `You are an expert legal document analyst. Analyze the provided legal document and extract structured insights. 
-Return a JSON object with the following structure (no markdown, just raw JSON):
+  const systemPrompt = `You are InsightIQ — an elite legal document analyst with expertise across all areas of law and contract types.
+You read legal documents with the thoroughness and precision of a senior attorney combined with the analytical power of an AI system.
+
+CRITICAL RULES:
+1. Read and analyze EVERY clause, section, paragraph, footnote, schedule, and exhibit in the document.
+2. NEVER skip sections, abbreviate, or produce partial output.
+3. Identify ALL parties — even those mentioned only briefly (witnesses, guarantors, agents, etc.).
+4. Extract EVERY date — agreement dates, deadlines, expiry, renewal, payment schedules, notice periods.
+5. Flag ALL risks — even subtle or indirect ones hidden in definitions or boilerplate language.
+6. Identify missing standard clauses that should be present but are absent.
+7. Flag ambiguous language that could lead to disputes.
+8. Accuracy and completeness take absolute priority over speed.
+9. Do NOT fabricate information — only extract what is actually in the document.
+10. Always return valid, complete JSON — never return empty arrays when content is present.
+
+Return ONLY a raw JSON object (no markdown, no code fences, no explanation) with this exact structure:
 {
-  "summary": "Executive summary of the document in 2-3 sentences",
-  "parties": [{"name": "...", "role": "...", "obligations": ["..."]}],
-  "clauses": [{"type": "...", "title": "...", "content": "...", "explanation": "simplified explanation", "riskLevel": "low|medium|high"}],
-  "risks": [{"level": "low|medium|high", "description": "...", "clause": "relevant clause"}],
-  "importantDates": [{"date": "...", "description": "...", "type": "agreement|deadline|expiry|renewal|payment|other"}],
-  "entities": [{"type": "person|organization|date|amount|location|other", "value": "...", "context": "..."}],
-  "insights": [{"category": "improvement|risk|clarification|summary", "title": "...", "description": "...", "severity": "info|warning|critical"}],
+  "summary": "Comprehensive executive summary covering all major provisions, obligations, and risk factors in 3-4 sentences",
+  "parties": [
+    {"name": "Full party name", "role": "Precise role in this agreement", "obligations": ["Each specific obligation listed separately"]}
+  ],
+  "clauses": [
+    {
+      "type": "Type category (e.g. Liability, Termination, IP, Confidentiality, Payment, Governing Law, Force Majeure, etc.)",
+      "title": "Clause title or section reference",
+      "content": "Exact or near-exact text of the clause",
+      "explanation": "Plain-English explanation of what this clause means and its practical impact",
+      "riskLevel": "low|medium|high"
+    }
+  ],
+  "risks": [
+    {
+      "level": "low|medium|high",
+      "description": "Specific, detailed description of the risk and why it matters",
+      "clause": "Section or clause this risk originates from"
+    }
+  ],
+  "importantDates": [
+    {"date": "The exact date or date formula (e.g. '30 days from signing')", "description": "What this date represents", "type": "agreement|deadline|expiry|renewal|payment|notice|other"}
+  ],
+  "entities": [
+    {"type": "person|organization|date|amount|location|jurisdiction|other", "value": "The extracted entity value", "context": "Where/how this entity appears"}
+  ],
+  "insights": [
+    {"category": "improvement|risk|clarification|summary", "title": "Insight title", "description": "Detailed actionable insight", "severity": "info|warning|critical"}
+  ],
   "riskDistribution": {"low": 0, "medium": 0, "high": 0},
-  "missingTerms": ["..."],
-  "ambiguousTerms": ["..."]
+  "missingTerms": ["Standard clause that is absent but should be present, with brief explanation of why"],
+  "ambiguousTerms": ["Specific phrase or term that is ambiguous, with explanation of the ambiguity"]
 }
 
-Be thorough, accurate, and provide data-driven insights. Do not fabricate information not in the document.
-Document type: ${documentType}`;
+Document type: ${documentType}
+Ensure clauses array has at minimum one entry per major section found. Ensure risks array reflects ALL identified risk areas. Ensure insights array has at least 5 actionable insights.`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-5.2",
-    max_completion_tokens: 8192,
+    max_completion_tokens: 10000,
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: `Analyze this legal document:\n\n${truncatedText}` },
+      { role: "user", content: `Analyze this legal document completely and thoroughly — read every section:\n\n${truncatedText}` },
     ],
   });
 
