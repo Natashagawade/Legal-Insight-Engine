@@ -4,19 +4,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
 
-// Pages
 import Home from "@/pages/home";
+import LegalHome from "@/pages/legal-home";
 import AnalysisDashboard from "@/pages/analysis-dashboard";
 import History from "@/pages/history";
 import GeneralAnalyzer from "@/pages/general-analyzer";
+import AcademicAssistant from "@/pages/academic-assistant";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      retry: false,
-      refetchOnWindowFocus: false,
-    },
+    queries: { retry: false, refetchOnWindowFocus: false },
   },
 });
 
@@ -25,9 +23,11 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/legal" component={LegalHome} />
         <Route path="/analysis/:analysisId" component={AnalysisDashboard} />
         <Route path="/history" component={History} />
         <Route path="/general" component={GeneralAnalyzer} />
+        <Route path="/academic" component={AcademicAssistant} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

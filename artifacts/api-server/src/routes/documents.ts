@@ -50,8 +50,8 @@ async function extractText(buffer: Buffer, mimetype: string, filename: string): 
 }
 
 async function analyzeWithAI(text: string, documentType: string): Promise<Record<string, unknown>> {
-  // Increased to 50k chars for comprehensive coverage
-  const truncatedText = text.slice(0, 50000);
+  // 25k chars — balanced for quality and memory safety
+  const truncatedText = text.slice(0, 25000);
 
   const systemPrompt = `You are InsightIQ — an elite legal document analyst with expertise across all areas of law and contract types.
 You read legal documents with the thoroughness and precision of a senior attorney combined with the analytical power of an AI system.

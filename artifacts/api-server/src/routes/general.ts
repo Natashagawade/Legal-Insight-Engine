@@ -323,8 +323,8 @@ async function analyzeGeneral(
   const category  = detectDocCategory(cleanText);
   const codeBlocks = extractCodeBlocks(cleanText);
 
-  const MAX_SINGLE_PASS = 50000;
-  const CHUNK_SIZE      = 40000;
+  const MAX_SINGLE_PASS = 20000;
+  const CHUNK_SIZE      = 18000;
 
   if (cleanText.length <= MAX_SINGLE_PASS) {
     onProgress?.(55, `Analyzing ${category === "academic" ? "academic" : category === "technical-code" ? "technical + code" : "document"} (${wordCount.toLocaleString()} words)…`);
